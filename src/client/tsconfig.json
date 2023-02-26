@@ -1,0 +1,12 @@
+{
+    "extends": ["../../tsconfig.base.json"],
+    "compilerOptions": {
+        "paths": {
+            "@webpack": ["./modules/webpack/index"],
+            "@settings": ["./modules/settings/index"],
+            "@webpack/*": ["./modules/webpack/*"],
+            "@constants": ["./data/constants"],
+            "@utilities": ["./modules/utilities/index"]
+        }
+    }
+}
