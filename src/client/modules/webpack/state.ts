@@ -1,7 +1,8 @@
 const WebpackState = {
     ready: false,
     loading: false,
-    paused: true
+    paused: true,
+    require: null
 };
 
 export default WebpackState;

@@ -6,7 +6,9 @@
             "@settings": ["./modules/settings/index"],
             "@webpack/*": ["./modules/webpack/*"],
             "@constants": ["./data/constants"],
-            "@utilities": ["./modules/utilities/index"]
+            "@utilities": ["./modules/utilities/index"],
+            "@logger": ["./structs/logger"],
+            "@structs": ["./structs/index"]
         }
     }
 }

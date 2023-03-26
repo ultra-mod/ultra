@@ -164,6 +164,8 @@ namespace Patcher {
 function handleGlobal(webpackCache: any) {
     predefine(webpackCache, "push", () => {
         webpackCache.push([[Symbol()], {}, require => {
+            WebpackState.require = require;
+
             require.d = (target: any, exports: any) => {
                 for (const key in exports) {
                     if (!exports[key] || target[key]) continue;
@@ -186,7 +188,7 @@ function handleGlobal(webpackCache: any) {
 }
 
 if (WEBPACK_CHUNK_NAME in window) {
-    throw new Error("Seems like ultra has started too early.");
+    throw new Error("Seems like ultra has started too late.");
 } else {
     predefine(window, WEBPACK_CHUNK_NAME, handleGlobal);
 }

@@ -1,15 +1,11 @@
 /// <reference path="../../vendor/electron.d.ts" />
 
-import {app, session} from "electron";
-import path from "path";
-import fs from "fs";
+import {app} from "electron";
+import {registerDevtools} from "./modules/reactdevtools";
+import {registerEvents} from "./modules/ipc";
+
+registerEvents();
 
 app.once("ready", () => {
-    const location = path.resolve(__dirname, "..", "vendor", "RDT");
-    
-    if (!fs.existsSync(location)) return;
-
-    session.defaultSession.loadExtension(path.resolve(__dirname, "..", "vendor", "RDT")).then(() => {
-        console.log("ReactDevTools installed!");
-    });
+    registerDevtools();
 });
