@@ -32,6 +32,7 @@ const runBuild = name => {
         outfile: resolve("./dist", name + ".js"),
         tsconfig: resolve("./src", name, "tsconfig.json"),
         external: ["electron"],
+        target: "esNext",
         write: true,
         plugins: [
             ...(options.plugins ?? []),

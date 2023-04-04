@@ -4,19 +4,15 @@
   "description": "A ultra discord clientmod.",
   "scripts": {
     "test": "echo \"$pnpm_config_test\"",
-    "build:client": "pnpm esbuild --bundle ./src/client/index.ts --outfile=dist/client.js --format=iife --tsconfig=./src/client/tsconfig.json",
-    "watch:client": "pnpm esbuild --bundle ./src/client/index.ts --outfile=dist/client.js --format=iife --tsconfig=./src/client/tsconfig.json --watch",
-    "build:main": "pnpm esbuild --external:electron --bundle ./src/main/index.ts --outfile=dist/main.js --platform=node --format=cjs --tsconfig=./src/main/tsconfig.json",
-    "watch:main": "pnpm esbuild --external:electron --bundle ./src/main/index.ts --outfile=dist/main.js --platform=node --format=cjs --tsconfig=./src/main/tsconfig.json --watch",
-    "build:preload": "pnpm esbuild --external:electron --bundle ./src/preload/index.ts --outfile=dist/preload.js --platform=node --format=cjs --tsconfig=./src/preload/tsconfig.json",
-    "watch:preload": "pnpm esbuild --external:electron --bundle ./src/preload/index.ts --outfile=dist/preload.js --platform=node --format=cjs --tsconfig=./src/preload/tsconfig.json --watch",
-    "build:all": "pnpm build:client && pnpm build:preload && pnpm build:main"
+    "dev": "node scripts/build.js -i preload,client,main -w",
+    "build": "node scripts/build.js -i preload,client,main"
   },
   "keywords": [],
   "author": "Strencher",
   "license": "MIT",
   "dependencies": {
-    "esbuild": "^0.17.10"
+    "esbuild": "^0.17.10",
+    "fflate": "^0.7.4"
   },
   "devDependencies": {
     "@types/react": "^18.0.28"

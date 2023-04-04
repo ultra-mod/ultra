@@ -1,11 +1,11 @@
 export default class Logger {
     foreColor = "#0288D1";
-    backColor: "rgba(2, 136, 209, .15)";
+    backColor = "rgba(2, 136, 209, .15)";
 
     constructor(public name: string) {};
 
     defaultLog(method: Exclude<keyof typeof console, "Console">, message: any[]) {
-        console[method].call(null, `%c[${this.name}]%c`, `color: ${this.foreColor}; background-color: ${this.backColor}; border-radius: 4px;`, "", ...message);
+        console[method].call(null, `%c${this.name}%c`, `color: ${this.foreColor}; background-color: ${this.backColor}; border-radius: 4px; padding: 0 2px;`, "", ...message);
     }
 
     log(...message: any[]) {this.defaultLog("log", message);}

@@ -3,14 +3,16 @@ import Logger from "@logger"
 type StandardListener = (...data: any[]) => void;
 
 export default class Module {
-    logger: Logger;
     logLabel: string;
+    #instance: Logger;
     listeners: {
         [event: string]: Set<Function>
-    };
+    } = {};
 
-    constructor() {
-        this.logger = new Logger("ultra:" + this.logLabel ?? this.constructor.name);
+    get logger(): Logger {
+        this.#instance ??= new Logger("ultra:" + this.logLabel ?? this.constructor.name);
+
+        return this.#instance;
     }
 
     error(...message: any[]) {return this.logger.error.apply(this.logger, message);}
@@ -37,5 +39,12 @@ export default class Module {
         for (const listener of listeners) {
             listener(...args);
         }
+
+        if ("*" in this.listeners && this.listeners["*"].size) {
+            const listeners = Array.from(this.listeners["*"]);
+            for (const listener of listeners) {
+                listener(...args);
+            }
+        } 
     }
 }

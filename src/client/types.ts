@@ -33,9 +33,13 @@ declare global {
         },
         ultra: {
             webpack: typeof import("@webpack").default,
-            settings: typeof import("@settings").default
+            settings: typeof import("@settings").default,
+            managers: {
+                themes: import("./modules/addons/themes").default,
+                plugins: import("./modules/addons/plugins").default,
+            }
         },
-        UltraNative: typeof import("../preload/modules/api")
+        UltraNative: typeof import("../preload/modules/api"),
     }
 }
 

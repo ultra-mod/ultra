@@ -1,5 +1,6 @@
 import {Module} from "@structs";
 import {StringUtils, path} from "@utilities";
+import {unzipSync} from "fflate";
 
 const {UltraNative} = window;
 
@@ -13,7 +14,9 @@ export enum AddonErrorCodes {
     ERR_COMPILE,
     MISSING_CONFIG_FILE,
     CORRUPT_CONFIG,
-    ENTRY_POINT_MISSING
+    ENTRY_POINT_MISSING,
+    CORRUPT_ZIP,
+    ALREADY_EXISTS
 }
 
 // TODO: Add proper addon interface
@@ -30,19 +33,28 @@ export default class BaseManager extends Module {
     displayName: string;
     short: string;
     path: string;
-    currError: Error;
-    addonErrors: Set<AddonError>;
+    currError: Error = null;
+    addonErrors: Set<AddonError> = new Set();
     prefix: string;
-    #addons: Map<string, Addon>;
+    #addons: Map<string, Addon> = new Map();
     langExtension: string;
 
-    constructor() {
-        super();
+    initialize() {
         this.logLabel = this.short;
         this.path = path.join(UltraNative.getPath("appData"), "ultra", this.short);
         this.prefix = this.short.slice(0, -1);
-
         this.#sanityCheck();
+        this.#attachEvents();
+
+        if (!this.currError) {
+            this.#loadAddons();
+        }
+    }
+
+    #attachEvents() {
+        this.on("addon-loaded", addon => {
+            this.logger.info(`${addon.name} was loaded!`);
+        });
     }
 
     #sanityCheck() {
@@ -66,11 +78,13 @@ export default class BaseManager extends Module {
             const location = path.join(this.path, dirent);
             const info = UltraNative.getDirentInfo(location);
 
+            let addon;
+
             if (info.isDirectory()) {
-                this.#loadFolderAddon(location);
+                addon = this.#loadFolderAddon(location);
             }
             else if (path.extname(dirent) === ".zip") {
-                this.#loadBundledAddon(location);
+                addon = this.#loadBundledAddon(location);
             }
             else {
                 this.#fail(
@@ -78,8 +92,15 @@ export default class BaseManager extends Module {
                     AddonErrorCodes.INVALID_ADDON,
                     dirent
                 );
+                continue;
+            }
+
+            if (addon) {
+                this.emit("addon-loaded", addon);
             }
         }
+
+        this.logger.info(`Loaded all ${this.short}!`);
     }
 
     
@@ -101,13 +122,49 @@ export default class BaseManager extends Module {
     }
     
     #loadBundledAddon(location: string) {
-        
+        const dirent = path.basename(location);
+        const contents = UltraNative.readFile(location);
+
+        let unzipped; try {
+            unzipped = unzipSync(contents);
+        } catch (error) {
+            this.#fail(
+                `Addon ${dirent} is a corrupted zip!`,
+                AddonErrorCodes.CORRUPT_ZIP,
+                dirent
+            );
+            return;
+        }
+
+        const config = this.#analyzeAddon(
+            dirent,
+            new Set(Object.keys(unzipped)),
+            {
+                location,
+                readFile: (file: string) => unzipped[file]
+            }
+        );
+
+        if (config) {
+            config.type = "zip";
+            config.contents = unzipped;
+        }
+
+        return config;
     }
 
     #loadFolderAddon(location: string) {
-        const dirent = path.basename(location);
-        const dirents = new Set(UltraNative.readdir(location));
+        return this.#analyzeAddon(
+            path.basename(location),
+            new Set(UltraNative.readdir(location)),
+            {
+                location,
+                readFile: (file: string) => UltraNative.readFile(path.join(location, file))
+            }
+        );
+    }
 
+    #analyzeAddon(dirent: string, dirents: Set<string>, opts: {location: string, readFile: Function} = {} as any) {
         if (!dirents.has("config.json")) {
             this.#fail(
                 `Addon ${dirent} missing "config.json" file.`,
@@ -118,7 +175,7 @@ export default class BaseManager extends Module {
         }
 
         let config: any; try {
-            config = JSON.parse(StringUtils.fromBinary(UltraNative.readFile(path.join(location, "config.json"))));
+            config = JSON.parse(StringUtils.fromBinary(opts.readFile("config.json")));
         } catch (error) {
             this.#fail(
                 [`Addon ${dirent}'s config is corrupt!`, error],
@@ -141,14 +198,21 @@ export default class BaseManager extends Module {
             config.main = `index.${this.langExtension}`;
         }
 
-        config.path = location;
+        config.path = opts.location;
 
-        this.#addons.set(dirent.replaceAll(" ", "-"), config);
+        const id = (config.id || config.name).replaceAll(" ", "-").toLowerCase();
+        
+        if (this.#addons.has(id)) {
+            this.#fail(
+                `A ${this.short} with the id "${id}" already exists!`,
+                AddonErrorCodes.ALREADY_EXISTS,
+                id
+            );
+            return;
+        }
+
+        this.#addons.set(id, config);
 
         return config;
-    }
-
-    loadFile() {
-
     }
 }
