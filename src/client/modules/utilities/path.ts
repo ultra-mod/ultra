@@ -1,7 +1,10 @@
 export const sep = navigator.userAgent.includes("Windows") ? "\\" : "/";
 
 export function join(...paths: string[]) {
-    return paths.filter(Boolean).join(sep);
+    return paths
+        .flatMap(part => part.indexOf("/") ? part.split("/") : part)
+        .filter(Boolean)
+        .join(sep);
 }
 
 export function extname(dirent: string) {

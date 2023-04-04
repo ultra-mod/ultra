@@ -8,7 +8,8 @@
             "@constants": ["./data/constants"],
             "@utilities": ["./modules/utilities/index"],
             "@logger": ["./structs/logger"],
-            "@structs": ["./structs/index"]
+            "@structs": ["./structs/index"],
+            "@storage": ["./modules/storage/index"]
         }
     }
 }

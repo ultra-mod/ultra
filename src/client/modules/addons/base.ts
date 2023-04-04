@@ -20,7 +20,7 @@ export enum AddonErrorCodes {
 }
 
 // TODO: Add proper addon interface
-type Addon = any;
+export type Addon = any;
 
 export type AddonError = {
     type: string;
@@ -87,7 +87,7 @@ export default class BaseManager extends Module {
                 addon = this.#loadBundledAddon(location);
             }
             else {
-                this.#fail(
+                this.fail(
                     `Could not identify ${dirent}`,
                     AddonErrorCodes.INVALID_ADDON,
                     dirent
@@ -104,7 +104,7 @@ export default class BaseManager extends Module {
     }
 
     
-    #fail(error: any | any[], code: AddonErrorCodes, name: string) {
+    fail(error: any | any[], code: AddonErrorCodes, name: string) {
         this.error(...(Array.isArray(error) ? error : [error]));
         this.addonErrors.add({
             code,
@@ -128,7 +128,7 @@ export default class BaseManager extends Module {
         let unzipped; try {
             unzipped = unzipSync(contents);
         } catch (error) {
-            this.#fail(
+            this.fail(
                 `Addon ${dirent} is a corrupted zip!`,
                 AddonErrorCodes.CORRUPT_ZIP,
                 dirent
@@ -166,7 +166,7 @@ export default class BaseManager extends Module {
 
     #analyzeAddon(dirent: string, dirents: Set<string>, opts: {location: string, readFile: Function} = {} as any) {
         if (!dirents.has("config.json")) {
-            this.#fail(
+            this.fail(
                 `Addon ${dirent} missing "config.json" file.`,
                 AddonErrorCodes.MISSING_CONFIG_FILE,
                 dirent
@@ -177,7 +177,7 @@ export default class BaseManager extends Module {
         let config: any; try {
             config = JSON.parse(StringUtils.fromBinary(opts.readFile("config.json")));
         } catch (error) {
-            this.#fail(
+            this.fail(
                 [`Addon ${dirent}'s config is corrupt!`, error],
                 AddonErrorCodes.CORRUPT_CONFIG,
                 dirent
@@ -186,7 +186,7 @@ export default class BaseManager extends Module {
         }
 
         if (!config.main || !dirents.has(`index.${this.langExtension}`)) {
-            this.#fail(
+            this.fail(
                 `Addon ${dirent}'s entry point is missing. This means there's no "index.${this.langExtension}" file or it's unspecified in the config.json`,
                 AddonErrorCodes.ENTRY_POINT_MISSING,
                 dirent
@@ -203,7 +203,7 @@ export default class BaseManager extends Module {
         const id = (config.id || config.name).replaceAll(" ", "-").toLowerCase();
         
         if (this.#addons.has(id)) {
-            this.#fail(
+            this.fail(
                 `A ${this.short} with the id "${id}" already exists!`,
                 AddonErrorCodes.ALREADY_EXISTS,
                 id
