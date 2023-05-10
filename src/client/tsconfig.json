@@ -2,8 +2,11 @@
     "extends": ["../../tsconfig.base.json"],
     "compilerOptions": {
         "paths": {
+            "@styles/*": ["./styles/*"],
+            "@addons/*": ["./modules/addons/*"],
             "@webpack": ["./modules/webpack/index"],
             "@settings": ["./modules/settings/index"],
+            "@settings/*": ["./modules/settings/*"],
             "@webpack/*": ["./modules/webpack/*"],
             "@constants": ["./data/constants"],
             "@utilities": ["./modules/utilities/index"],

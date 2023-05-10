@@ -29,6 +29,8 @@ export type AddonError = {
     name: string;
 };
 
+const instances = {};
+
 export default class BaseManager extends Module {
     displayName: string;
     short: string;
@@ -36,8 +38,12 @@ export default class BaseManager extends Module {
     currError: Error = null;
     addonErrors: Set<AddonError> = new Set();
     prefix: string;
-    #addons: Map<string, Addon> = new Map();
+    addons: Map<string, Addon> = new Map();
     langExtension: string;
+
+    static instance() {
+        return instances[this.name];
+    }
 
     initialize() {
         this.logLabel = this.short;
@@ -49,6 +55,8 @@ export default class BaseManager extends Module {
         if (!this.currError) {
             this.#loadAddons();
         }
+
+        instances[this.constructor.name] = this;
     }
 
     #attachEvents() {
@@ -71,38 +79,71 @@ export default class BaseManager extends Module {
         }
     }
 
+    getZipPath(zip: any, path: string) {
+        if (path.includes("../")) throw `Not allowed to access parent`;
+        if (path.indexOf("./") === 0) path = path.slice(2);
+
+        return path.split(/\\|\//).reduce((curr, piece) => curr?.[piece], zip);
+    }
+
     #loadAddons() {
         const dirents = UltraNative.readdir(this.path);
 
         for (const dirent of dirents) {
             const location = path.join(this.path, dirent);
-            const info = UltraNative.getDirentInfo(location);
-
-            let addon;
-
-            if (info.isDirectory()) {
-                addon = this.#loadFolderAddon(location);
-            }
-            else if (path.extname(dirent) === ".zip") {
-                addon = this.#loadBundledAddon(location);
-            }
-            else {
-                this.fail(
-                    `Could not identify ${dirent}`,
-                    AddonErrorCodes.INVALID_ADDON,
-                    dirent
-                );
-                continue;
-            }
-
-            if (addon) {
-                this.emit("addon-loaded", addon);
-            }
+            
+            this.loadAddon(location, dirent);
         }
 
         this.logger.info(`Loaded all ${this.short}!`);
     }
 
+    loadAddon(location: string, dirent: string, showToast: boolean = true) {
+        const info = UltraNative.getDirentInfo(location);
+
+        let addon: Addon;
+
+        if (info.isDirectory()) {
+            addon = this.#loadFolderAddon(location);
+        }
+        else if (path.extname(dirent) === ".zip") {
+            addon = this.#loadBundledAddon(location);
+        }
+        else {
+            return; // Skip them for now.
+            // TODO: Make this show a warning in client / a setting to ignore
+            this.fail(
+                `Could not identify ${dirent}`,
+                AddonErrorCodes.INVALID_ADDON,
+                dirent
+            );
+            return;
+        }
+
+        if (addon) {
+            this.emit("addon-loaded", addon, showToast);
+        }
+
+        return addon;
+    }
+
+    unloadAddon(id: string, showToast: boolean) {
+        if (!this.addons.has(id)) throw new Error(`No such addon "${id}"`);
+
+        const addon = this.addons.get(id);
+        this.emit("addon-unloaded", addon, showToast);
+
+        this.addons.delete(id);
+    }
+
+    reloadAddon(id: string) {
+        if (!this.addons.has(id)) throw new Error(`No such addon "${id}"`);
+        const addon = this.addons.get(id);
+
+        this.unloadAddon(addon.path, false);
+        const success = !!this.loadAddon(addon.path, path.basename(addon.path), false);
+        if (success) this.emit("addon-reloaded", addon.name);
+    }
     
     fail(error: any | any[], code: AddonErrorCodes, name: string) {
         this.error(...(Array.isArray(error) ? error : [error]));
@@ -202,7 +243,7 @@ export default class BaseManager extends Module {
 
         const id = (config.id || config.name).replaceAll(" ", "-").toLowerCase();
         
-        if (this.#addons.has(id)) {
+        if (this.addons.has(id)) {
             this.fail(
                 `A ${this.short} with the id "${id}" already exists!`,
                 AddonErrorCodes.ALREADY_EXISTS,
@@ -211,7 +252,7 @@ export default class BaseManager extends Module {
             return;
         }
 
-        this.#addons.set(id, config);
+        this.addons.set(id, config);
 
         return config;
     }

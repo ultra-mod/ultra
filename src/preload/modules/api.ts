@@ -3,6 +3,8 @@ import type {app} from "electron/main";
 import {ipcRenderer} from "electron/renderer";
 import {readFileSync, readdirSync, existsSync, statSync, writeFileSync, mkdirSync} from "fs";
 
+export const current = __dirname;
+
 export const getPath = (name: Parameters<typeof app.getPath>[0]) => {
     return ipcRenderer.sendSync("ULTRA_GET_PATH", name);
 };

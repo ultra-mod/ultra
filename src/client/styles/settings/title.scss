@@ -1,0 +1,14 @@
+.ultra-settings-title {
+    text-transform: none;
+}
+
+.ultra-settings-title-crumb {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.ultra-title-inactive {
+    color: var(--header-secondary);
+    cursor: pointer;
+}

@@ -96,20 +96,20 @@ const Storage = new class Storage extends Module {
 
     // Aliases
 
-    getPluginStates() {
+    getPluginStates = () => {
         return this.data.plugins ?? [];
     }
 
-    setPluginStates(states: string) {
+    setPluginStates = (states: string[]) => {
         this.data.plugins = states;
         this.#writeData("plugins");
     }   
 
-    getThemesStates() {
+    getThemesStates = () => {
         return this.data.themes ?? [];
     }
 
-    setThemesStates(states: string) {
+    setThemesStates = (states: string[]) => {
         this.data.themes = states;
         this.#writeData("themes");
     } 

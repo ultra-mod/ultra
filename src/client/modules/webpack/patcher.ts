@@ -2,40 +2,36 @@ import {WEBPACK_CHUNK_NAME} from "@constants";
 import {StringUtils, predefine} from "@utilities";
 import WebpackState from "./state";
 import {readySignal} from "./pause";
-
-export enum PatchType {
-    Regex,
-    Factory
-}
+import {default as LoggerModule} from "@logger";
 
 export type BasePatch = {
     _ran?: boolean,
-    type: PatchType,
     once?: boolean,
+    find?: (substring: string, ...args: any[]) => boolean,
+    match?: RegExp,
     variables?: {
         [key: string]: () => any
     }
 };
 
-export type RegexPatch = BasePatch & {
-    type: PatchType.Regex,
-    regex: RegExp,
-    groups?: boolean,
+export type BasicPatch = BasePatch & {
+    regex?: RegExp,
     replacements?: string[],
-    replace?: string
-};
+    apply?(str: string): string;
+    replace?: string | ((substring: string, ...args: any[]) => string);
+}
 
-export type FactoryPatch = BasePatch & {
-    type: PatchType.Factory,
-    predicate(factory: string): boolean;
-    apply(factory: string): string;
-};
+export type MultiPatch = BasePatch & {
+    patches: BasicPatch[]
+}
 
-export type Patch = RegexPatch | FactoryPatch;
+export type Patch = MultiPatch | BasicPatch;
 
 export const patches = new Set<Patch>();
 
 export let originalPush = (module: any) => {throw new Error("Something went fatally wrong.");}
+
+const Logger = new LoggerModule("webpack");
 
 let registry = {};
 
@@ -48,35 +44,63 @@ export function addPatch(patch: Patch) {
     patches.add(patch);
 }
 
+export const whenReady = new Promise(res => {
+    addPatch({
+        match: /"UserStore"/,
+        regex: /"UserStore"[\s\S]+?CONNECTION_OPEN:function\([\w,]+\)\{/,
+        replace: `$&importVar("ready").ready();`,
+        variables: {
+            ready: () => ({ready: res})
+        }
+    });
+});
+
 namespace Patcher {
-    function collectPatches(moduleFactory: string) {
+    function collectPatches(moduleFactory: string, patchesList = patches) {
         const found = [] as Patch[];
     
-        for (const patch of Array.from(patches)) {
+        for (const patch of Array.from(patchesList)) {
             if (patch.once && patch._ran) continue;
 
             if (patch.once) patch._ran = true;
 
-            if (patch.type === PatchType.Regex) {
-                const matches = patch.regex.test(moduleFactory);
+            if ("patches" in patch) {
+                const matches = patch.match
+                    ? patch.match.test(moduleFactory)
+                    : patch.find
+                        ? patch.find(moduleFactory)
+                        : false;
+                
+                if (matches) {
+                    found.push(...patch.patches);
+                }
+            } else if ("match" in patch || "regex" in patch) {
+                const matches = (patch.match ?? patch.regex).test(moduleFactory);
     
                 if (matches) {
                     found.push(patch);
                 }
-            } else if (patch.type === PatchType.Factory) {
-                if (patch.predicate(moduleFactory)) {
+            } else if ("find" in patch) {
+                if (patch.find(moduleFactory)) {
                     found.push(patch);
                 }
+            } else {
+                Logger.warn("The following can't be predicated:", patch);
             }
         }
     
         return found;
     }
     
-    export function applyRegexPatch(patch: RegexPatch, moduleFactory: string) {
+    export function applyPatch(patch: BasicPatch, moduleFactory: string) {
         const {regex} = patch;
-        if (patch.groups && patch.replacements) {
+        if ("replacements" in patch) {
             const replacements = patch.replacements;
+
+            if (!regex.test(moduleFactory)) {
+                console.error("Regex did not match for", patch);
+                return moduleFactory;
+            }
 
             const match = regex.exec(moduleFactory) ?? [] as unknown as RegExpExecArray;
             const startIndex = match.index;
@@ -95,15 +119,15 @@ namespace Patcher {
 
                 moduleFactory = StringUtils.replaceByIndex(moduleFactory, index, group.length, replacements[i]);
             }
+        } else if ("apply" in patch) {
+            moduleFactory = patch.apply(moduleFactory);
+        } else if ("replace" in patch) {
+            moduleFactory = moduleFactory.replace(patch.regex, patch.replace as string);
         } else {
-            moduleFactory = moduleFactory.replace(patch.regex, patch.replace);
+            Logger.warn(`The following patch could not be identified:`, patch);
         }
 
         return moduleFactory;
-    }
-
-    export function applyFactoryPatch(patch: FactoryPatch, moduleFactory: string) {
-        return patch.apply(moduleFactory);
     }
 
     export function applyPatches(chunk: any) {
@@ -119,14 +143,19 @@ namespace Patcher {
             if (patches.length) {
                 let variables = {};
                 for (const patch of patches) {
-                    if (patch.type === PatchType.Regex) {
-                        string = applyRegexPatch(patch, string);
-                    } else if (patch.type === PatchType.Factory) {
-                        string = applyFactoryPatch(patch, string);
-                    }
+
+                    string = applyPatch(patch as BasicPatch, string);
 
                     if (patch.variables) {
-                        Object.assign(variables, patch.variables);
+                        for (const variable in patch.variables) {
+                            const desc = Object.getOwnPropertyDescriptor(patch.variables, variable);
+
+                            if (desc.get) {
+                                variables[variable] = () => desc.get();
+                            } else {
+                                variables[variable] = patch.variables[variable];
+                            }
+                        }
                     }
                 }
 
@@ -137,7 +166,7 @@ namespace Patcher {
                 registry[id] = variables;
 
                 try {
-                    modules[id] = window.eval(`{const id = ${id}; const importVar = ${importVar}; \n` + string + `}\n//# sourceURL=${id}.patched.js`);
+                    modules[id] = window.eval(`{const id = ${id}; const importVar = ${importVar}; \n${string}}\n//# sourceURL=${id}.patched.js`);
                 } catch (error) {
                     console.error("Failed to apply patch!", error);
                 }

@@ -1,0 +1,67 @@
+.ultra-addon-card {
+    background: var(--background-secondary);
+    border-radius: 8px;
+    border: 3px solid var(--primary-560);
+    padding: 8px;
+    color: #ddd;
+    // border-color: var(--green-400);
+}
+
+.ultra-addon-card + .ultra-addon-card {
+    margin-top: 15px;
+}
+
+.ultra-addon-card-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.ultra-switch-container {
+    margin-left: auto;
+}
+
+.ultra-addon-card-name {
+    flex-grow: 0;
+    white-space: pre;
+    margin-right: 5px;
+}
+
+.ultra-badge {
+    border-radius: 4px;
+    background: var(--color);
+    color: #fff;
+    padding: 2px 3px;
+    font-size: 12px;
+}
+
+.ultra-addon-card-body {
+    width: 100%;
+    background: var(--primary-600);
+    border: thin solid var(--primary-560);
+    border-radius: 4px;
+    padding: 6px;
+    margin-bottom: 10px;
+}
+
+.ultra-addon-card-buttons {
+    margin-left: auto;
+    align-items: center;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.ultra-addon-card-button {
+    border-radius: 4px;
+    padding: 5px;
+    width: fit-content;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--primary-560);
+    }
+}
+
+.ultra-addon-card-button {
+    display: inline-flex;
+}

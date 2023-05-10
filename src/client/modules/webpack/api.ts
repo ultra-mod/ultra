@@ -1,11 +1,18 @@
+import {whenReady} from "./patcher";
 import WebpackState from "./state";
+
+export type ModuleFilter = (m: any, i: string, s: Function) => boolean;
+
+export namespace Filters {
+    export const byProps = (...props: string[]) => (m: any) => m && props.every(prop => m[prop] !== undefined);
+}
 
 const safeAccess = (obj: any, key: string) => {
     try {return obj[key];}
     catch {return null;}
 };
 
-export function getModule(filter: (m: any, i: string, s: Function) => boolean, options: {deep?: boolean, all?: boolean, depth?: number} = {} as any) {
+export function getModule(filter: ModuleFilter, options: {deep?: boolean, all?: boolean, depth?: number} = {} as any) {
     const keys = Object.keys(WebpackState.require.c);
     const found = [];
 
@@ -40,4 +47,24 @@ export function getModule(filter: (m: any, i: string, s: Function) => boolean, o
     }
 
     return found;
+}
+
+export function lazy<T>(filter: ModuleFilter) {
+    let cache = null;
+
+    let _promise = whenReady.then(() => {
+        cache = getModule(filter);
+    });
+
+    return new Proxy({}, {
+        get(_, key) {
+            if (key === "_promise") return _promise;
+            if (!cache) return null;
+            return cache[key];
+        },
+        set(_, key, value) {
+            if (!cache) return null;
+            return cache[key] = value;
+        }
+    }) as unknown as T;
 }

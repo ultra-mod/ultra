@@ -1,9 +1,9 @@
 import {addInterceptor, interceptors} from "./patcher";
 
-type Section = {
+export type Section = {
     index(sections: any[]): number,
     section: string,
-    label: string,
+    label?: string,
     element?(): React.ReactElement,
     predicate?(): boolean,
     onClick?(): void,
@@ -17,26 +17,51 @@ type Section = {
     badgeCount?: number,
 };
 
+enum ItemTypes {
+    SECTION,
+    SINGLE_ITEM
+}
+
 const items = new Map();
 
 addInterceptor(sections => {
-    for (const item of items.values()) {
-        const index = item.index(sections);
-        sections.splice(index, 0, item);
+    for (const section of items.values()) {
+        switch (section.type) {
+            case ItemTypes.SECTION: {
+                const index = section.index(sections);
+                sections.splice(index, 0, {
+                    section: "HEADER",
+                    label: section.label
+                });
+
+                for (let i = 0; i < section.items.length; i++) {
+                    sections.splice(index + 1 + i, 0, section.items[i]);
+                }
+            } break;
+        
+            case ItemTypes.SINGLE_ITEM: {
+                const index = section.index(sections);
+                sections.splice(index, 0, section);
+            } break;
+        }
     }
 });
 
-export function registerItem(id: string, options: Section) {
-    items.set(id, options);
+export function registerSection(id: string, options: {
+    label: string,
+    index(sections: Section[]): number,
+    items: Omit<Section, "index">[]
+}) {
+    items.set(id, Object.assign(options, {type: ItemTypes.SECTION}));
 }
 
-export function unregisterItem(id: string) {
+export function unregisterSection(id: string) {
     return items.delete(id);
 }
 
 const Settings = {
-    registerItem,
-    unregisterItem,
+    registerSection,
+    unregisterSection,
     items,
     interceptors
 };

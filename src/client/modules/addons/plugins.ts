@@ -15,7 +15,6 @@ export default class PluginsManager extends BaseManager {
 
         this.states = Storage.getPluginStates();
         this.#attachListeners();
-        this.initialize();
     }
 
     #attachListeners() {
@@ -23,26 +22,31 @@ export default class PluginsManager extends BaseManager {
     }
 
     runPlugin(addon: Addon) {
-        const hasPreload = addon.type === "zip" ? "preload.js" in addon.contents : UltraNative.existsDirent(path.join(addon.path, "preload.js"));
+        let contents: string; {
+            if (addon.type === "zip") contents = StringUtils.fromBinary(this.getZipPath(addon.contents, addon.main));
+            else contents = StringUtils.fromBinary(UltraNative.readFile(path.join(addon.path, addon.main)));
+        }
 
-        if (hasPreload) {
-            let preloadContents: string; {
-                if (addon.type === "zip") preloadContents = StringUtils.fromBinary(addon.contents["preload.js"]);
-                else preloadContents = StringUtils.fromBinary(UltraNative.readFile(path.join(addon.path, "preload.js")));
+        addon.instance = this.compile(addon.name, path.join(addon.path, addon.main), contents);
+
+        if (addon.settings) {
+            const location = path.join(addon.path, addon.settings);
+            const isFile = UltraNative.existsDirent(location);
+
+            if (isFile) {
+                addon.settings = this.compile(addon.name, location, StringUtils.fromBinary(UltraNative.readFile(location)));
             }
-
-            this.compile(addon.name, path.join(addon.path, "preload.js"), preloadContents);
         }
     }
 
     compile(name: string, location: string, contents: string) {
         try {
-            const exports = {};
+            const module = {exports: {}};
             const fn = new Function(["exports", "require", "module"].join(), contents + `\n//# sourceURL=${JSON.stringify(location).slice(1, -1)}`);
 
-            fn.call(exports, exports, this.#makeRequire(name, location.slice(0, location.lastIndexOf(path.sep))), {exports});
+            fn.call(module.exports, module.exports, this.#makeRequire(name, location.slice(0, location.lastIndexOf(path.sep))), module);
 
-            return exports;
+            return module.exports;
         } catch (error) {
             this.fail([`Failed to compile ${path.basename(location)}`, error], AddonErrorCodes.ERR_COMPILE, name);
         }
@@ -58,18 +62,20 @@ export default class PluginsManager extends BaseManager {
             }
 
             if (!path.extname(resolved)) {
-                const ext = [".json", ".js"].find(ext => UltraNative.existsDirent(path.join(location, resolved + ext)));
+                const ext = [".json", ".js"].find(ext => UltraNative.existsDirent(resolved + ext));
 
                 if (!ext) {
                     throw new Error(`Cannot find module "${mod}"`);
                 }
 
-                resolved = path.join(location, resolved + ext);
+                resolved = resolved + ext;
             }
 
             if (!UltraNative.existsDirent(resolved)) {
                 throw new Error(`Cannot find module "${mod}"`);
             }
+
+            if (cache.has(resolved)) return cache.get(resolved);
 
             const module = (() => {
                 switch (path.extname(resolved)) {

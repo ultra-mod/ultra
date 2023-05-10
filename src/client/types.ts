@@ -34,6 +34,7 @@ declare global {
         ultra: {
             webpack: typeof import("@webpack").default,
             settings: typeof import("@settings").default,
+            utilities: typeof import("@utilities"),
             managers: {
                 themes: import("./modules/addons/themes").default,
                 plugins: import("./modules/addons/plugins").default,

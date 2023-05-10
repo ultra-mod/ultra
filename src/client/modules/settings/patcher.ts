@@ -1,6 +1,7 @@
-import {PatchType, addPatch} from "@webpack/patcher";
+import {addPatch} from "@webpack/patcher";
+import type {Section} from "./index";
 
-export const interceptors = new Set<(items: any[]) => void>();
+export const interceptors = new Set<(items: Section[]) => void>();
 
 const onFail = (error) => {
     console.error("Failed to patch user settings!", error);
@@ -27,8 +28,7 @@ export function addInterceptor(interceptor: (items: any[]) => void) {
 }
 
 addPatch({
-    type: PatchType.Factory,
-    predicate: str => /section:[\s\w.\d]+PROFILE_CUSTOMIZATION/s.test(str),
+    find: str => /section:[\s\w.\d]+PROFILE_CUSTOMIZATION/s.test(str),
     apply(str) {
         const variableRegex = /(\w)\s?=\s?\[\{section:[\s\w.,:]+USER_SETTINGS/m;
         const match = variableRegex.exec(str) ?? [] as unknown as RegExpExecArray;

@@ -7,7 +7,5 @@ export default class ThemesManager extends BaseManager {
     
     constructor() {
         super();
-
-        this.initialize();
     }
 }
