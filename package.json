@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"$pnpm_config_test\"",
     "dev": "node scripts/build.js -i preload,client,main -w",
-    "build": "node scripts/build.js -i preload,client,main"
+    "build": "node scripts/build.js -i preload,client,main",
+    "inject": "node scripts/inject.js"
   },
   "keywords": [],
   "author": "Strencher",
