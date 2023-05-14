@@ -22,14 +22,15 @@ queueMicrotask(() => {
             super(...arguments);
             this.__originalPreload = originalPreload;
 
-            require(ultraMain);
         }
     }
-
+    
     const electronPath = require.resolve("electron");
     delete require.cache[electronPath].exports;
     require.cache[electronPath].exports = {
         ...electron,
         BrowserWindow
     };
+    
+    require(ultraMain);
 });
