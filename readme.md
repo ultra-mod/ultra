@@ -13,7 +13,7 @@
 # Standalone installation
 * Make sure to meet all [requirements](#requirements)
 * Run the snippet from below.
-```ps
+```sh
 pnpm inject --release <stable|canary|development>
 ```
 Hint: There'a also a shortcut for `--release` which is `-r`.
