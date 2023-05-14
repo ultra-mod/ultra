@@ -46,10 +46,17 @@ console.log(`⌛ Installing to app version ${discordVersion}`);
 
 const resourcesPath = path.join(discordPath, discordVersion, "resources");
 const buildInfo = path.join(resourcesPath, "build_info.json");
+let skipRename = false;
 
 if (!fs.existsSync(buildInfo)) {
-    console.error("❌ Can't find build_info.json file, discord installation too old or corrupt!");
-    process.exit(1);
+    if (fs.existsSync(path.join(resourcesPath, "build_info.old.json"))) {
+        skipRename = true;
+        console.log("⚠️  Found existing injection");
+    } else {
+        console.error("❌ Can't find build_info.json file, discord installation too old or corrupt!");
+        process.exit(1);
+    }
+
 }
 
 const newPath = path.join(resourcesPath, "build_info.old.json");
@@ -63,6 +70,6 @@ contents = contents.replace("process.env.ULTRA_PRELOAD", JSON.stringify(preload)
 contents = contents.replace("process.env.ULTRA_MAIN", JSON.stringify(main));
 
 fs.writeFileSync(patchedPath, contents);
-fs.renameSync(buildInfo, newPath);
+if (!skipRename) fs.renameSync(buildInfo, newPath);
 
 console.log(`✅ Successfully injected ultra into ${folderName} v${discordVersion.slice(4)}`);
