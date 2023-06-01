@@ -30,6 +30,4 @@ queueMicrotask(() => {
         ...electron,
         BrowserWindow
     };
-    
-    require(ultraMain);
 });
