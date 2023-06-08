@@ -26,7 +26,7 @@ registerSection("core-settings", {
             element() {
                 return (
                     <SettingsView title="Plugins">
-                        <AddonView manager={PluginsManager.instance()} />
+                        <AddonView manager={PluginsManager} />
                     </SettingsView>
                 );
             }
@@ -37,7 +37,7 @@ registerSection("core-settings", {
             element() {
                 return (
                     <SettingsView title="Themes">
-                        <AddonView manager={ThemesManager.instance()} />
+                        <AddonView manager={ThemesManager} />
                     </SettingsView>
                 );
             }

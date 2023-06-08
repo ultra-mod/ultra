@@ -10,7 +10,7 @@ export type BasePatch = {
     find?: (substring: string, ...args: any[]) => boolean,
     match?: RegExp,
     variables?: {
-        [key: string]: () => any
+        [key: string]: any
     }
 };
 
@@ -48,9 +48,9 @@ export const whenReady = new Promise(res => {
     addPatch({
         match: /"UserStore"/,
         regex: /"UserStore"[\s\S]+?CONNECTION_OPEN:function\([\w,]+\)\{/,
-        replace: `$&importVar("ready").ready();`,
+        replace: `$&importVar("ready")();`,
         variables: {
-            ready: () => ({ready: res})
+            ready: res
         }
     });
 });
@@ -61,8 +61,6 @@ namespace Patcher {
     
         for (const patch of Array.from(patchesList)) {
             if (patch.once && patch._ran) continue;
-
-            if (patch.once) patch._ran = true;
 
             if ("patches" in patch) {
                 const matches = patch.match
@@ -122,6 +120,11 @@ namespace Patcher {
         } else if ("apply" in patch) {
             moduleFactory = patch.apply(moduleFactory);
         } else if ("replace" in patch) {
+            if (!regex.test(moduleFactory)) {
+                console.error("Regex did not match for", Object.assign({}, patch));
+                return moduleFactory;
+            }
+            
             moduleFactory = moduleFactory.replace(patch.regex, patch.replace as string);
         } else {
             Logger.warn(`The following patch could not be identified:`, patch);
@@ -146,12 +149,14 @@ namespace Patcher {
 
                     string = applyPatch(patch as BasicPatch, string);
 
+                    if (patch.once) patch._ran = true;
+
                     if (patch.variables) {
                         for (const variable in patch.variables) {
                             const desc = Object.getOwnPropertyDescriptor(patch.variables, variable);
 
                             if (desc.get) {
-                                variables[variable] = () => desc.get();
+                                Object.defineProperty(variables, variable, desc);
                             } else {
                                 variables[variable] = patch.variables[variable];
                             }
@@ -160,7 +165,7 @@ namespace Patcher {
                 }
 
                 function importVar(name) {
-                    return (<any>window).$$ultra_registry[id][name]();
+                    return (<any>window).$$ultra_registry[id][name];
                 }
 
                 registry[id] = variables;

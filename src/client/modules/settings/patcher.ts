@@ -11,7 +11,7 @@ declare var importVar: (name: "interceptors") => typeof interceptors;
 
 const patcher = (items) => {
     const interceptors = importVar("interceptors");
-
+    
     try {
         for (const interceptor of [...interceptors]) {
             interceptor(items);
@@ -45,6 +45,6 @@ addPatch({
         return str;
     },
     variables: {
-        interceptors: () => interceptors
+        get interceptors() {return interceptors;}
     }
 });

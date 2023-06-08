@@ -4,7 +4,7 @@ import {StringUtils, path} from "@utilities";
 
 const {UltraNative} = window;
 
-export default class PluginsManager extends BaseManager {
+const PluginManager = new class PluginsManager extends BaseManager {
     displayName = "PluginsManager";
     short = "plugins";
     langExtension = "js";
@@ -97,3 +97,5 @@ export default class PluginsManager extends BaseManager {
         }
     }
 }
+
+export default PluginManager;

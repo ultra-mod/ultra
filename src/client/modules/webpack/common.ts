@@ -8,7 +8,7 @@ addPatch({
     regex: /\.directionRight.+?\.directionDown[\s\S]+?(?<identifier>\w)\.Directions=[\s\S]+?;/,
     replace: `$&importVar("setCaret")($<identifier>);`,
     variables: {
-        setCaret: () => value => whenReady.then(() => initComponent(Caret, value))
+        setCaret: value => whenReady.then(() => initComponent(Caret, value))
     }
 });
 
@@ -43,7 +43,7 @@ export const Caret: React.NamedExoticComponent<{
     }
 } = {} as any;
 
-export const React = lazy<typeof import("react")>(Filters.byProps("createElement", "useState"));
+export const React = lazy<typeof import("react")>(Filters.byProps("createElement", "useState"), {bypass: true});
 
 export const ModulesBundle = lazy<any>(Filters.byProps("FormSection"));
 

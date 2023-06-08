@@ -49,21 +49,23 @@ export function getModule(filter: ModuleFilter, options: {deep?: boolean, all?: 
     return found;
 }
 
-export function lazy<T>(filter: ModuleFilter) {
+export function lazy<T>(filter: ModuleFilter, options: {bypass?: boolean} = {bypass: false}) {
     let cache = null;
 
     let _promise = whenReady.then(() => {
-        cache = getModule(filter);
+        cache ??= getModule(filter);
     });
 
     return new Proxy({}, {
         get(_, key) {
             if (key === "_promise") return _promise;
-            if (!cache) return null;
-            return cache[key];
+            if (!cache && !options.bypass) return null;
+            if (!cache) cache = getModule(filter);
+            return cache?.[key];
         },
         set(_, key, value) {
-            if (!cache) return null;
+            if (!cache && !options.bypass) return null;
+            if (!cache) cache = getModule(filter);
             return cache[key] = value;
         }
     }) as unknown as T;

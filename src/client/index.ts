@@ -1,11 +1,10 @@
 import Webpack from "@webpack";
-import Settings from "@settings";
-import {StringUtils, predefine, path} from "@utilities";
-import * as utilities from "@utilities";
-import "./types";
 import ThemesManager from "./modules/addons/themes";
 import PluginsManager from "./modules/addons/plugins";
+import {StringUtils, path} from "@utilities";
+
 import "@settings/core";
+import "./global";
 
 {
     const {UltraNative} = window;
@@ -22,17 +21,9 @@ import "@settings/core";
     }
 }
 
-window.ultra = {
-    webpack: Webpack,
-    settings: Settings,
-    utilities: utilities,
-    managers: {
-        themes: new ThemesManager(),
-        plugins: new PluginsManager()
-    }
-};
 
-window.ultra.managers.plugins.initialize();
-window.ultra.managers.themes.initialize();
+
+ThemesManager.initialize();
+PluginsManager.initialize();
 
 Webpack.continueLoading();

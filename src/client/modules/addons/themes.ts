@@ -1,6 +1,6 @@
 import BaseManager from "./base";
 
-export default class ThemesManager extends BaseManager {
+const ThemesManager = new class ThemesManager extends BaseManager {
     displayName = "ThemesManager";
     short = "themes";
     langExtension = "css";
@@ -9,3 +9,5 @@ export default class ThemesManager extends BaseManager {
         super();
     }
 }
+
+export default ThemesManager;

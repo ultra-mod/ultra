@@ -12,7 +12,8 @@
             "@utilities": ["./modules/utilities/index"],
             "@logger": ["./structs/logger"],
             "@structs": ["./structs/index"],
-            "@storage": ["./modules/storage/index"]
+            "@storage": ["./modules/storage/index"],
+            "@storage/*": ["./modules/storage/*"]
         }
     }
 }
