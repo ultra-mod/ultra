@@ -1,3 +1,4 @@
+import Storage from "@storage";
 import {Module} from "@structs";
 import {StringUtils, path} from "@utilities";
 import {unzipSync} from "fflate";
@@ -29,8 +30,6 @@ export type AddonError = {
     name: string;
 };
 
-const instances = {};
-
 export default class BaseManager extends Module {
     displayName: string;
     short: string;
@@ -40,10 +39,7 @@ export default class BaseManager extends Module {
     prefix: string;
     addons: Map<string, Addon> = new Map();
     langExtension: string;
-
-    static instance() {
-        return instances[this.name];
-    }
+    states: string[];
 
     initialize() {
         this.logLabel = this.short;
@@ -55,13 +51,55 @@ export default class BaseManager extends Module {
         if (!this.currError) {
             this.#loadAddons();
         }
+    }
 
-        instances[this.constructor.name] = this;
+    // Stubs
+    stop(id: string) {}
+    start(id: string) {}
+
+    isEnabled(id: string) {return this.states.includes(id);}
+
+    enable(id: string) {
+        const data = Storage.data[this.short];
+
+        if (data.includes(id)) throw "Addon already enabled.";
+        if (!this.addons.has(id)) throw "Addon doesn't exist.";
+
+        data.push(id);
+        Storage.writeData(this.short);
+        this.states = data;
+
+        this.emit("addon-state-change", id);
+    }
+
+    disable(id: string) {
+        const data = Storage.data[this.short];
+
+        if (!data.includes(id)) throw "Addon already disabled.";
+        if (!this.addons.has(id)) throw "Addon doesn't exist.";
+
+        data.splice(data.indexOf(id), 1);
+        Storage.writeData(this.short);
+        this.states = data;
+
+        this.emit("addon-state-change", id);
     }
 
     #attachEvents() {
         this.on("addon-loaded", addon => {
             this.logger.info(`${addon.name} was loaded!`);
+        });
+
+        this.on("addon-state-change", id => {
+            const name = this.addons.get(id)?.name;
+
+            if (this.isEnabled(id)) {
+                this.start(id);
+                this.logger.info(`${name} was enabled!`);
+            } else {
+                this.stop(id);
+                this.logger.info(`${name} was disabled!`);
+            }
         });
     }
 

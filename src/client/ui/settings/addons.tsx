@@ -6,7 +6,7 @@ import AddonCard from "./addoncard";
 
 // TODO: Render controls
 
-export default function AddonView(props: {manager: PluginsManager | ThemesManager}) {
+export default function AddonView(props: {manager: typeof PluginsManager | typeof ThemesManager}) {
     const ViewAPI = useView();
 
     React.useEffect(() => {

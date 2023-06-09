@@ -82,10 +82,10 @@ const Storage = new class Storage extends Module {
 
     setData(key: string, data: any) {
         this.data[key] = data;
-        this.#writeData(key);
+        this.writeData(key);
     }
 
-    #writeData(key: string) {
+    writeData(key: string) {
         try {
             UltraNative.writeFile(path.join(this.path, `${key}.json`), StringUtils.toBinary(JSON.stringify(this.data[key])));
         } catch (error) {
@@ -102,7 +102,7 @@ const Storage = new class Storage extends Module {
 
     setPluginStates = (states: string[]) => {
         this.data.plugins = states;
-        this.#writeData("plugins");
+        this.writeData("plugins");
     }   
 
     getThemesStates = () => {
@@ -111,7 +111,7 @@ const Storage = new class Storage extends Module {
 
     setThemesStates = (states: string[]) => {
         this.data.themes = states;
-        this.#writeData("themes");
+        this.writeData("themes");
     } 
 
     getSetting(id: string, fallback: any) {
@@ -121,7 +121,7 @@ const Storage = new class Storage extends Module {
     updateSetting(id: string, data: any) {
         this.data.settings ??= {};
         this.data.settings[id] = data;
-        this.#writeData("settings");
+        this.writeData("settings");
     }
 }
 

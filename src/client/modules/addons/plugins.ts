@@ -21,6 +21,34 @@ const PluginManager = new class PluginsManager extends BaseManager {
         this.on("addon-loaded", this.onPluginLoaded.bind(this));
     }
 
+    start(id: string, suppress = false) {
+        const addon = this.addons.get(id);
+
+        if (!addon) return suppress || this.logger.error("Unknown addon.");
+        if (!addon.loaded) return suppress || this.logger.error("Addon must be evaluated before runtime toggling it.");
+        if (!addon.instance?.enable) return suppress || this.logger.error("Addon cannot be runtime toggled.");
+
+        try {
+            addon.instance.enable();
+        } catch (error) {
+            this.logger.error("Failed to run exported enable() method.", error);
+        }
+    }
+
+    stop(id: string) {
+        const addon = this.addons.get(id);
+
+        if (!addon) return this.logger.error("Unknown addon.");
+        if (!addon.loaded) return this.logger.error("Addon must be evaluated before runtime toggling it.");
+        if (!addon.instance?.disable) return this.logger.error("Addon cannot be runtime toggled.");
+
+        try {
+            addon.instance.disable();
+        } catch (error) {
+            this.logger.error("Failed to run exported disable() method.", error);
+        }
+    }
+
     runPlugin(addon: Addon) {
         let contents: string; {
             if (addon.type === "zip") contents = StringUtils.fromBinary(this.getZipPath(addon.contents, addon.main));
@@ -28,6 +56,7 @@ const PluginManager = new class PluginsManager extends BaseManager {
         }
 
         addon.instance = this.compile(addon.name, path.join(addon.path, addon.main), contents);
+        addon.loaded = true;
 
         if (addon.settings) {
             const location = path.join(addon.path, addon.settings);
@@ -92,8 +121,9 @@ const PluginManager = new class PluginsManager extends BaseManager {
     }
 
     onPluginLoaded(addon: Addon) {
-        if (this.states.includes(addon.id)) {
+        if (this.isEnabled(addon.id)) {
             this.runPlugin(addon);
+            this.start(addon.id, true);
         }
     }
 }

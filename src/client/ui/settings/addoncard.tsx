@@ -3,28 +3,26 @@ import "@styles/settings/addon-card.scss";
 import Badge, {BadgeColors} from "../badge";
 import Storage from "@storage";
 import Gear from "../icons/gear";
+import PluginManager from "@addons/plugins";
+import ThemesManager from "@addons/themes";
 
 // TODO: Implement social links section in footer
 
-function useAddonController(type: "theme" | "plugin", id: string) {
-    const controller = React.useMemo<{get: () => string[], set: (states: string[]) => void}>(() => ({
-        get: {
-            theme: Storage.getThemesStates,
-            plugin: Storage.getPluginStates
-        }[type],
-        set: {
-            theme: Storage.setThemesStates,
-            plugin: Storage.setPluginStates
-        }[type]
-    }), [type]);
+const managers = {
+    plugin: PluginManager,
+    theme: ThemesManager
+};
 
-    const [state, setState] = React.useState(controller.get().includes(id));
+function useAddonController(type: "theme" | "plugin", id: string) {
+    const manager = managers[type];
+
+    const [state, setState] = React.useState(manager.isEnabled(id));
 
     React.useEffect(() => {
         const callback = key => {
             if (key !== "plugins" && key !== "themes") return;
 
-            setState(controller.get().includes(id));
+            setState(manager.isEnabled(id));
         };
 
         Storage.on("updated", callback);
@@ -33,22 +31,17 @@ function useAddonController(type: "theme" | "plugin", id: string) {
     }, [id]);
 
     const handleSwitch = () => {
-        const states = controller.get().slice();
-
-        if (controller.get().includes(id)) {
-            states.splice(states.indexOf(id), 1);
+        if (manager.isEnabled(id)) {
+            manager.disable(id);
         } else {
-            states.push(id);
+            manager.enable(id)
         }
-
-        controller.set(states);
     };
 
     return [
         state,
         handleSwitch,
-        controller
-    ] as [typeof state, typeof handleSwitch, typeof controller];
+    ] as [typeof state, typeof handleSwitch];
 }
 
 function ActionButton({children: icon, tooltip, onClick}: {children: any, tooltip: string, onClick: Function}) {
