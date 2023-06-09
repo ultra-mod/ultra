@@ -128,6 +128,9 @@ export default class BaseManager extends Module {
         const dirents = UltraNative.readdir(this.path);
 
         for (const dirent of dirents) {
+            // Skip dot files/folders (.git etc.)
+            if (dirent.indexOf(".") === 0) continue;
+
             const location = path.join(this.path, dirent);
             
             this.loadAddon(location, dirent);
