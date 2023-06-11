@@ -1,4 +1,4 @@
-const {build, context} = require("esbuild");
+const {context} = require("esbuild");
 const {resolve} = require("node:path");
 
 const argv = require("./_argv");
@@ -9,6 +9,7 @@ if (name == null || watch == null) {
     throw `Missing arguments.`;
 }
 
+let num = 0;
 const runBuild = name => {
     const options = require(resolve("./src", name, "esbuild"));
 
@@ -33,15 +34,15 @@ const runBuild = name => {
                     });
 
                     build.onEnd(() => {
-                        console.log(`Rebuild ${name} in ${(Date.now() - start).toFixed(0)}ms`);
+                        console.log(`${watch ? "Rebuild" : "Build"} ${name} in ${(Date.now() - start).toFixed(0)}ms`);
+
+                        if (!watch && ++num === 3) process.exit();
                     });
                 }
             }
         ].filter(Boolean),
-        // ...(options.plugins && {plugins: options.plugins}),
         treeShaking: true,
     }).then(ctx => {
-        if (!watch) queueMicrotask(() => ctx.dispose());
         return ctx.watch();
     });
 }
@@ -50,7 +51,7 @@ if (Array.isArray(name)) {
     name
         .filter(Boolean)
         .forEach(runBuild);
-    
+
     if (watch) {
         console.log(`Watching ${name.join(", ")}`);
     }
