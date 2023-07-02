@@ -8,7 +8,7 @@ const PluginManager = new class PluginsManager extends BaseManager {
     displayName = "PluginsManager";
     short = "plugins";
     langExtension = "js";
-    states: string[] = [];
+    states: {[id: string]: {power: boolean, enabled: boolean}} = {};
     
     constructor() {
         super();
@@ -121,9 +121,9 @@ const PluginManager = new class PluginsManager extends BaseManager {
     }
 
     onPluginLoaded(addon: Addon) {
-        if (this.isEnabled(addon.id)) {
+        if (this.getState(addon.id, "power")) {
             this.runPlugin(addon);
-            this.start(addon.id, true);
+            if (this.isEnabled(addon.id)) this.start(addon.id, true);
         }
     }
 }

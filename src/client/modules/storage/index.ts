@@ -3,6 +3,8 @@ import {StringUtils, path} from "@utilities";
 
 const {UltraNative} = window;
 
+export type AddonState = {[id: string]: {power: boolean, enabled: boolean}};
+
 const Storage = new class Storage extends Module {
     path: string;
     errors: {
@@ -34,10 +36,16 @@ const Storage = new class Storage extends Module {
         for (const dirent of dirents) {
             const name = dirent.slice(0, dirent.indexOf("."));
 
-            let data: any;
+            let data: any = {};
 
             try {
                 data = JSON.parse(StringUtils.fromBinary(UltraNative.readFile(path.join(this.path, dirent))));
+                if (["plugins.json", "themes.json"].includes(dirent) && Array.isArray(data)) {
+                    data = Object.fromEntries(data.map(s => [s, {
+                        enabled: true,
+                        power: true
+                    }]));
+                }
             } catch (error) {
                 this.#fail(`Failed to load ${dirent} storage file!`, error);
                 continue;
@@ -63,7 +71,7 @@ const Storage = new class Storage extends Module {
             if (UltraNative.existsDirent(location)) continue;
 
             try {
-                UltraNative.writeFile(location, StringUtils.toBinary(["plugins.json", "themes.json"].includes(item) ? "[]" : "{}"));
+                UltraNative.writeFile(location, StringUtils.toBinary("{}"));
                 this.data[item.slice(0, item.indexOf("."))] = {};
 
                 this.info(`Created ${item} storage file!`);
@@ -87,8 +95,10 @@ const Storage = new class Storage extends Module {
 
     writeData(key: string) {
         try {
-            UltraNative.writeFile(path.join(this.path, `${key}.json`), StringUtils.toBinary(JSON.stringify(this.data[key])));
+            let data = JSON.stringify(this.data[key]);
+            UltraNative.writeFile(path.join(this.path, `${key}.json`), StringUtils.toBinary(data));
         } catch (error) {
+            console.error(error);
             this.error(`Failed to save ${key}.json storage file!`, error);
         }
         this.emit("updated", key);
@@ -97,21 +107,19 @@ const Storage = new class Storage extends Module {
     // Aliases
 
     getPluginStates = () => {
-        return this.data.plugins ?? [];
+        return this.data.plugins ?? {};
     }
 
-    setPluginStates = (states: string[]) => {
-        this.data.plugins = states;
-        this.writeData("plugins");
+    setPluginStates = (states: AddonState) => {
+        this.setData("plugins", states);
     }   
 
     getThemesStates = () => {
-        return this.data.themes ?? [];
+        return this.data.themes ?? {};
     }
 
-    setThemesStates = (states: string[]) => {
-        this.data.themes = states;
-        this.writeData("themes");
+    setThemesStates = (states: AddonState) => {
+        this.setData("themes", states);
     } 
 
     getSetting(id: string, fallback: any) {

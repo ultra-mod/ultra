@@ -36,6 +36,7 @@ declare global {
             settings: typeof import("@settings").default,
             utilities: typeof import("@utilities"),
             storage: typeof import("@storage/api"),
+            apis: typeof import("./modules/apis"),
             managers: {
                 themes: typeof import("./modules/addons/themes").default,
                 plugins: typeof import("./modules/addons/plugins").default,

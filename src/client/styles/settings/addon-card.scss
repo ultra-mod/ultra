@@ -27,14 +27,6 @@
     margin-right: 5px;
 }
 
-.ultra-badge {
-    border-radius: 4px;
-    background: var(--color);
-    color: #fff;
-    padding: 2px 3px;
-    font-size: 12px;
-}
-
 .ultra-addon-card-body {
     width: 100%;
     background: var(--primary-600);
@@ -59,6 +51,14 @@
 
     &:hover {
         background: var(--primary-560);
+    }
+
+    .power-disabled {
+        color: #ed4245;
+    }
+
+    .power-enabled {
+        color: #23A55A;
     }
 }
 

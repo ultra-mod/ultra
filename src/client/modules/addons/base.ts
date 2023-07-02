@@ -1,4 +1,4 @@
-import Storage from "@storage";
+import Storage, {AddonState} from "@storage";
 import {Module} from "@structs";
 import {StringUtils, path} from "@utilities";
 import {unzipSync} from "fflate";
@@ -39,7 +39,7 @@ export default class BaseManager extends Module {
     prefix: string;
     addons: Map<string, Addon> = new Map();
     langExtension: string;
-    states: string[];
+    states: AddonState;
 
     initialize() {
         this.logLabel = this.short;
@@ -47,42 +47,56 @@ export default class BaseManager extends Module {
         this.prefix = this.short.slice(0, -1);
         this.#sanityCheck();
         this.#attachEvents();
-
+        
         if (!this.currError) {
             this.#loadAddons();
         }
+
     }
+
+    saveStorage() {this.short === "plugins" ? Storage.setPluginStates(this.states) : Storage.setThemesStates(this.states);}
 
     // Stubs
     stop(id: string) {}
     start(id: string) {}
 
-    isEnabled(id: string) {return this.states.includes(id);}
+    isEnabled(id: string) {
+        return this.getState(id, "enabled");
+    }
 
     enable(id: string) {
-        const data = Storage.data[this.short];
-
-        if (data.includes(id)) throw "Addon already enabled.";
-        if (!this.addons.has(id)) throw "Addon doesn't exist.";
-
-        data.push(id);
-        Storage.writeData(this.short);
-        this.states = data;
-
-        this.emit("addon-state-change", id);
+        this.setState(id, "enabled", true);
     }
 
     disable(id: string) {
-        const data = Storage.data[this.short];
+        this.setState(id, "enabled", false);
+    }
 
-        if (!data.includes(id)) throw "Addon already disabled.";
-        if (!this.addons.has(id)) throw "Addon doesn't exist.";
+    getState(id: string, state: "power" | "enabled") {
+        if (!this.states[id]) return state === "power" ? true : false;
 
-        data.splice(data.indexOf(id), 1);
-        Storage.writeData(this.short);
-        this.states = data;
+        return this.states[id][state];
+    }
 
-        this.emit("addon-state-change", id);
+    setState(id: string, state: "power" | "enabled", value: boolean) {
+        if (!this.addons.has(id)) throw new Error(`Addon with ID ${id} does not exist.`);
+    
+        if (!this.states[id]) {
+            this.states[id] = {
+                enabled: false,
+                power: true
+            };
+        }
+
+        this.states[id][state] = value;
+        this.saveStorage();
+        this.emit("addon-state-change", id, state);
+    }
+
+    togglePower(id: string) {
+        this.setState(id, "power", !this.getState(id, "power"));
+
+        // TODO: Show a modal/banner here
     }
 
     #attachEvents() {

@@ -1,10 +1,10 @@
 import {Forms, React, Switch, Tooltip} from "@webpack/common";
 import "@styles/settings/addon-card.scss";
 import Badge, {BadgeColors} from "../badge";
-import Storage from "@storage";
 import Gear from "../icons/gear";
 import PluginManager from "@addons/plugins";
 import ThemesManager from "@addons/themes";
+import Power from "../icons/power";
 
 // TODO: Implement social links section in footer
 
@@ -16,21 +16,27 @@ const managers = {
 function useAddonController(type: "theme" | "plugin", id: string) {
     const manager = managers[type];
 
-    const [state, setState] = React.useState(manager.isEnabled(id));
+    const [enabled, setEnabled] = React.useState(manager.isEnabled(id));
+    const [power, setPower] = React.useState(manager.getState(id, "power"));
 
     React.useEffect(() => {
-        const callback = key => {
-            if (key !== "plugins" && key !== "themes") return;
+        const callback = (addonId: string, state: string) => {
+            if (addonId !== id) return;
 
-            setState(manager.isEnabled(id));
+            switch (state) {
+                case "power": return setPower(manager.getState(addonId, "power"));
+                case "enabled": return setEnabled(manager.getState(addonId, "enabled"));
+            }
         };
 
-        Storage.on("updated", callback);
+        manager.on("addon-state-change", callback);
 
-        return () => void Storage.off("updated", callback);
+        return () => void manager.off("addon-state-change", callback);
     }, [id]);
 
     const handleSwitch = () => {
+        if (!(manager.addons.get(id)?.config?.canDisable ?? true)) return;
+
         if (manager.isEnabled(id)) {
             manager.disable(id);
         } else {
@@ -38,10 +44,14 @@ function useAddonController(type: "theme" | "plugin", id: string) {
         }
     };
 
+    const togglePower = () => manager.togglePower(id);
+
     return [
-        state,
+        enabled,
+        power,
         handleSwitch,
-    ] as [typeof state, typeof handleSwitch];
+        togglePower
+    ] as [typeof enabled, typeof power, typeof handleSwitch, typeof togglePower];
 }
 
 function ActionButton({children: icon, tooltip, onClick}: {children: any, tooltip: string, onClick: Function}) {
@@ -61,9 +71,12 @@ export default function AddonCard(baseAddon: {
     description: string,
     version: string,
     id: string,
-    type: "theme" | "plugin"
+    type: "theme" | "plugin",
+    config?: {
+        canDisable?: boolean
+    }
 }) {
-    const [state, toggle] = useAddonController(baseAddon.type, baseAddon.id);
+    const [enabled, power, handleSwitch, togglePower] = useAddonController(baseAddon.type, baseAddon.id);
 
     return (
         <div className="ultra-addon-card">
@@ -71,7 +84,7 @@ export default function AddonCard(baseAddon: {
                 <Forms.Title tag="h3" className="ultra-addon-card-name">{baseAddon.name}</Forms.Title>
                 <Badge color={BadgeColors.BLUE}>{baseAddon.version}</Badge>
                 <div className="ultra-switch-container">
-                    <Switch checked={state} onChange={toggle}/>
+                    <Switch disabled={!(baseAddon.config?.canDisable ?? true)} checked={(baseAddon.config?.canDisable ?? true) ? enabled : true} onChange={handleSwitch}/>
                 </div>
             </div>
             <div className="ultra-addon-card-body">
@@ -83,6 +96,9 @@ export default function AddonCard(baseAddon: {
                 <div className="ultra-addon-card-buttons">
                     <ActionButton onClick={() => {}} tooltip="Settings" key="settings">
                         <Gear />
+                    </ActionButton>
+                    <ActionButton onClick={togglePower} tooltip={"Power " + (power ? "On" : "Off")} key="power">
+                        <Power class={power ? "power-enabled" : "power-disabled"} />
                     </ActionButton>
                 </div>
             </div>
