@@ -218,11 +218,13 @@ function handleGlobal(webpackCache: any) {
         webpackCache.push = Patcher.handlePush;
 
         webpackCache.pop();
+        
+        (window as any)["$$VENCORD_WEBPACK_SPOOF"] = webpackCache;
     });
 }
 
 if (WEBPACK_CHUNK_NAME in window) {
-    throw new Error("Seems like ultra has started too late.");
+    handleGlobal(window[WEBPACK_CHUNK_NAME]);
 } else {
     predefine(window, WEBPACK_CHUNK_NAME, handleGlobal);
 }

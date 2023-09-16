@@ -28,7 +28,7 @@ export function addInterceptor(interceptor: (items: any[]) => void) {
 }
 
 addPatch({
-    find: str => /section:[\s\w.\d]+PROFILE_CUSTOMIZATION/s.test(str),
+    find: str => /section:[\s\w.\d$]+PROFILE_CUSTOMIZATION/s.test(str),
     apply(str) {
         const variableRegex = /(\w)\s?=\s?\[\{section:[\s\w.,:]+USER_SETTINGS/m;
         const match = variableRegex.exec(str) ?? [] as unknown as RegExpExecArray;

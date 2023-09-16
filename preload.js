@@ -11,6 +11,6 @@ script += `\n//# sourceURL=${location}`;
 
 webFrame.top.executeJavaScript(script);
 
-if (Object.keys(require.cache).indexOf("kernel.asar") === -1) {
+if (!Object.keys(require.cache).some(str => str.indexOf("kernel.asar") > -1)) {
     require(ipcRenderer.sendSync("ULTRA_GET_PRELOAD"));
 }
